@@ -44,6 +44,9 @@ readonly BOOT2DOCKER_USER="docker"
 # docker-compose constants
 readonly DEFAULT_COMPOSE_FILE="docker-compose.yml"
 
+# files to not be watch
+FSWATCH_EXCLUDE=".git"
+
 # Sync and watch constants
 readonly DEFAULT_PATHS_TO_SYNC="."
 readonly DEFAULT_EXCLUDES=".git"
@@ -926,8 +929,8 @@ function initial_sync {
 #
 function watch {
   log_info "Watching: $PATHS_TO_SYNC"
-
-  local readonly fswatch_cmd="fswatch -0 $PATHS_TO_SYNC"
+  log_info "Excluding from Watching: $FSWATCH_EXCLUDE"
+  local readonly fswatch_cmd="fswatch -0 $PATHS_TO_SYNC, --exclude $FSWATCH_EXCLUDE"
   log_debug "$fswatch_cmd"
 
   local file=""
@@ -962,6 +965,7 @@ function instructions {
   echo -e "  -e, --exclude-path PATH\t\tExclude PATH while syncing. Behaves identically to rsync's --exclude parameter. May be specified multiple times. Default: $DEFAULT_EXCLUDES"
   echo -e "  -c, --compose-file COMPOSE_FILE\tRead in this docker-compose file and sync any volumes specified in it. Default: $DEFAULT_COMPOSE_FILE"
   echo -e "  -i, --ignore-file IGNORE_FILE\t\tRead in this ignore file and exclude any paths within it while syncing (see --exclude). Default: $DEFAULT_IGNORE_FILE"
+  echo -e "  -fse, --fswatch-exclude IGNORE_FILE\t\tRead in this ignores any path matching the regex of watching"
   echo -e "      --only-dependencies\t\tDuring install, only install the homebrew dependencies. Useful if homebrew is needs to be run as a different user."
   echo -e "      --skip-dependencies\t\tDuring install, don't install the homebrew dependencies. Useful if homebrew is needs to be run as a different user."
   echo -e "  -r, --remove-shared-folders \t\tAutomatically remove Virtualbox shared folders. Shared folders may void any performance benefits from using docker-osx-dev"
@@ -1288,6 +1292,11 @@ function handle_command {
       -e|--exclude-path)
         assert_valid_arg "$2" "$key"
         excludes+=("$2")
+        shift
+        ;;
+      -fse|--fswatch-exclude)
+        assert_valid_arg "$2" "$key"
+        FSWATCH_EXCLUDE="$2"
         shift
         ;;
       -I|--include-path)
